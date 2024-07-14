@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# HackTheBox PRoot Image Builder
+
+set -e # Exit immediately on any error
+
+# Tool List (Extensive Pen-Testing Collection)
+TOOL_LIST=(
+    # Reconnaissance & Scanning
+    nmap nikto masscan unicornscan fierce dnsenum dnsrecon whatweb dirb dirbuster
+    nikto gobuster ffuf wfuzz amass sublist3r amass
+    # Vulnerability Assessment
+    openvas nessus nuclei zap-cli sqlmap wapiti wpscan commix 
+    # Exploitation Frameworks
+    metasploit-framework exploitdb
+    # Web App Testing
+    burpsuite owasp-zap arachni w3af vega skipfish
+    # Password Cracking
+    john hashcat hydra medusa ophcrack crunch rcrack
+    # Wireless Attacks
+    aircrack-ng reaver wifite fern-wifi-cracker 
+    # Network Traffic Analysis
+    wireshark tshark tcpdump ngrep netsniff-ng bettercap
+    # Exploitation Tools
+    armitage msfvenom beef-xss commix sqlmap 
+    # Social Engineering
+    setoolkit
+    # Other Utilities
+    hping3 netcat socat proxychains hexedit xxd
+    # Programming Languages and Tools
+    python3 python3-pip ruby ruby-dev perl
+    # ... Add more tools as needed
+)
+
+# Python tools to install with pip
+PYTHON_TOOLS=(
+    pwntools volatility3 yara-python scapy requests beautifulsoup4 python-nmap dnspython paramiko impacket
+    # ... Add more Python tools as needed
+)
+
+# PRoot Configuration
+IMAGE_NAME="hacknthebox-proot"
+ROOTFS_DIR="$IMAGE_NAME-rootfs"
+IMAGE_FILE="$IMAGE_NAME.bt"
+
+# Clean Up (If Image Exists)
+if [ -f "$IMAGE_FILE" ]; then
+    echo "Removing existing image..."
+    rm -rf "$IMAGE_FILE" "$ROOTFS_DIR"
+fi
+
+# Create Rootfs
+echo "Creating PRoot environment..."
+proot -0 -w / -b /dev -b /proc -b /sys -b /tmp mkdir -p "$ROOTFS_DIR"
+proot -0 -r "$ROOTFS_DIR" -w / apt update
+
+# Add Kali Repositories (Optional, for wider tool selection)
+proot -r "$ROOTFS_DIR" -w / sh -c 'echo "deb http://http.kali.org/kali kali-rolling main contrib non-free" > /etc/apt/sources.list'
+proot -r "$ROOTFS_DIR" -w / apt update
+
+# Install Tools
+echo "Installing tools..."
+proot -r "$ROOTFS_DIR" -w / apt install -y --no-install-recommends "${TOOL_LIST[@]}"
+
+# Install Python Tools with pip
+echo "Installing Python tools with pip..."
+proot -r "$ROOTFS_DIR" -w / pip3 install "${PYTHON_TOOLS[@]}"
+
+
+# Create .bt Image
+echo "Creating PRoot image..."
+tar -C "$ROOTFS_DIR" -cJf "$IMAGE_FILE" .
+
+# Clean Up
+echo "Cleaning up..."
+rm -rf "$ROOTFS_DIR"
+
+echo "HackTheBox PRoot Image ($IMAGE_FILE) created successfully!"
